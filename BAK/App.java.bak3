@@ -1,0 +1,143 @@
+package com.tannfe.faxprocess;
+
+/* 
+ * This class converts the image using ghost4j
+*/
+
+import java.io.File;
+import java.util.List;
+ 
+import org.ghost4j.analyzer.AnalysisItem;
+import org.ghost4j.analyzer.FontAnalyzer;
+import org.ghost4j.document.PDFDocument;
+import org.ghost4j.renderer.SimpleRenderer;
+import java.awt.Image;
+import javax.imageio.ImageIO;
+import java.awt.image.RenderedImage;
+import org.jpedal.PdfDecoder;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.lang.RuntimeException;
+import java.io.IOException;
+import java.util.Iterator;
+import javax.imageio.ImageWriter;
+import com.sun.media.imageio.plugins.tiff.TIFFImageWriteParam;
+import javax.imageio.ImageTypeSpecifier;
+import javax.imageio.IIOImage;
+import java.io.FileOutputStream;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.awt.Graphics2D;
+
+
+/**
+ * Hello world!
+ *
+ */
+public class App 
+{
+	public static void main( String[] args ) {
+
+		String imageType = "tif";
+
+		// load PDF document using ghost4j
+		PDFDocument document = new PDFDocument();
+		List<BufferedImage> bImageList = new ArrayList();
+
+		try {
+			document.load(new File(args[0]));
+			// load into SimpleRenderer
+			SimpleRenderer renderer = new SimpleRenderer();
+
+			// set resolution (in DPI)
+			//renderer.setResolution(300);
+			renderer.setResolution(100);
+
+
+			// render into a List of Image
+			List<Image> imagesGhost = renderer.render(document);
+			// These need to be cast into a List of BufferedImage
+			for(int i = 0; i < imagesGhost.size(); i++) {
+				BufferedImage bimage = new BufferedImage(imagesGhost.get(i).getWidth(null), imagesGhost.get(i).getHeight(null), 
+									BufferedImage.TYPE_INT_ARGB);
+				// Draw the image on to the buffered image
+				Graphics2D bGr = bimage.createGraphics();
+				bGr.drawImage(imagesGhost.get(i), 0, 0, null);
+				bGr.dispose();
+
+				bImageList.add(bimage);
+			}
+		}
+		catch (Exception e) {
+			System.out.println("ERROR: " + e.getMessage());
+		}
+
+
+
+		// this is the byte array that is written out to
+		byte out[];
+		out = (byte[])null;
+
+
+		// org.jpedal.PdfDecoder object
+		//PdfDecoder decoder = null;
+		ByteArrayOutputStream baos = null;
+		javax.imageio.stream.ImageOutputStream ios = null;
+
+		try {
+			baos = new ByteArrayOutputStream();
+			ios = ImageIO.createImageOutputStream(baos);
+
+			boolean foundWriter = false;
+			for(Iterator writerIter = ImageIO.getImageWritersByFormatName("tif"); writerIter.hasNext() && !foundWriter;) {
+				foundWriter = true;
+				ImageWriter writer = (ImageWriter)writerIter.next();
+				writer.setOutput(ios);
+
+				// create an com.sun.media.imageio.plugins.tiff.TIFFImageWriteParam object
+				TIFFImageWriteParam writeParam = (TIFFImageWriteParam)writer.getDefaultWriteParam();
+				writeParam.setCompressionMode(2);
+				writeParam.setCompressionType("LZW"); writer.prepareWriteSequence(null);
+
+				java.awt.image.BufferedImage image = null;
+
+				for(int i = 0; i < bImageList.size(); i++) {
+					System.out.println("Page number: " + i);
+
+					image = bImageList.get(i);
+
+					// javax.imageio.ImageTypeSpecifier object
+					ImageTypeSpecifier spec = ImageTypeSpecifier.createFromRenderedImage(bImageList.get(i));
+
+					javax.imageio.metadata.IIOMetadata metadata = writer.getDefaultImageMetadata(spec, writeParam);
+
+					IIOImage iioImage = new IIOImage(image, null, metadata);
+
+					writer.writeToSequence(iioImage, writeParam);
+
+					image.flush();//modified after release.
+				}
+				image.flush();
+				writer.endWriteSequence();
+				ios.flush();
+				writer.dispose();
+				ios.close();
+				out = baos.toByteArray();
+				baos.close();
+
+
+				String strFilePath = "outfile.tif";
+				FileOutputStream fos = new FileOutputStream(strFilePath);
+				fos.write(out);
+				fos.close();
+			}
+		}
+		catch(Exception e) {
+			e.printStackTrace();//modified after release
+			//throw e; 
+		}
+		System.out.println("About to exit");
+
+	}
+}

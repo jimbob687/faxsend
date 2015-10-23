@@ -1,0 +1,24 @@
+Unable to connect
+Error: Could not find or load main class com.tannfe.freeswitchesl.MyESLTest
+connected
+Event-Name: SOCKET_DATA
+Content-Type: command/reply
+Reply-Text: -ERR%20command%20not%20found
+
+
+connected
+Event-Name: SOCKET_DATA
+Content-Type: api/response
+Content-Length: 733
+Content-Length: 733
+
+                     Name	   Type	                                      Data	State
+=================================================================================================
+          192.241.215.216	  alias	                                  internal	ALIASED
+                 internal	profile	        sip:mod_sofia@192.241.215.216:5060	RUNNING (0)
+            internal-ipv6	profile	                  sip:mod_sofia@[::1]:5060	RUNNING (0)
+                 external	profile	        sip:mod_sofia@192.241.215.216:5080	RUNNING (0)
+      external::FlowRoute	gateway	            sip:34421505@sip.flowroute.com	REGED
+=================================================================================================
+3 profiles 1 alias
+

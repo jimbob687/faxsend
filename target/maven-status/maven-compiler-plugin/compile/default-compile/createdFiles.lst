@@ -1,0 +1,5 @@
+com/tannfe/sendfaxlib/MyESLTest.class
+com/tannfe/sendfaxlib/MyESLClient.class
+com/tannfe/sendfaxlib/MyEslEventListener.class
+com/tannfe/faxsendlib/OutboundFax.class
+com/tannfe/sendfaxlib/GenerateFax.class

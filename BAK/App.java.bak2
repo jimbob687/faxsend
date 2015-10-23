@@ -1,0 +1,115 @@
+package com.tannfe.faxprocess;
+
+/* 
+ * This class used jpedal to convert PDFs into tiff files
+*/
+
+import java.io.File;
+import java.util.List;
+ 
+import org.ghost4j.analyzer.AnalysisItem;
+import org.ghost4j.analyzer.FontAnalyzer;
+import org.ghost4j.document.PDFDocument;
+import org.ghost4j.renderer.SimpleRenderer;
+import java.awt.Image;
+import javax.imageio.ImageIO;
+import java.awt.image.RenderedImage;
+import org.jpedal.PdfDecoder;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.lang.RuntimeException;
+import java.io.IOException;
+import java.util.Iterator;
+import javax.imageio.ImageWriter;
+import com.sun.media.imageio.plugins.tiff.TIFFImageWriteParam;
+import javax.imageio.ImageTypeSpecifier;
+import javax.imageio.IIOImage;
+import java.io.FileOutputStream;
+
+
+/**
+ * Hello world!
+ *
+ */
+public class App 
+{
+	public static void main( String[] args ) {
+
+		String imageType = "tif";
+
+		File file = new File(args[0]);
+		byte[] bai = new byte[(int) file.length()];
+		try {
+			FileInputStream fileInputStream = new FileInputStream(file);
+			fileInputStream.read(bai);
+		}
+		catch (FileNotFoundException e) {
+			System.out.println("File Not Found.");
+			e.printStackTrace();
+		}
+		catch (IOException e) {
+			System.out.println("Error Reading The File.");
+			e.printStackTrace();
+		}
+
+		byte out[];
+		out = (byte[])null;
+		PdfDecoder decoder = null;
+		ByteArrayOutputStream baos = null;
+		javax.imageio.stream.ImageOutputStream ios = null;
+
+		try {
+			decoder = new PdfDecoder();
+			decoder.openPdfArray(bai);
+			if(decoder.isFileViewable()) {
+				baos = new ByteArrayOutputStream();
+				ios = ImageIO.createImageOutputStream(baos);
+				boolean foundWriter = false;
+				for(Iterator writerIter = ImageIO.getImageWritersByFormatName("tif"); writerIter.hasNext() && !foundWriter;) {
+					foundWriter = true;
+					ImageWriter writer = (ImageWriter)writerIter.next();
+					writer.setOutput(ios);
+					TIFFImageWriteParam writeParam = (TIFFImageWriteParam)writer.getDefaultWriteParam();
+					writeParam.setCompressionMode(2);
+					writeParam.setCompressionType("LZW"); writer.prepareWriteSequence(null);
+					int NoOfPagesInPDF = decoder.getPageCount();
+					java.awt.image.BufferedImage image = null;
+					for(int i = 0; i < decoder.getPageCount(); i++) {
+						int pageNumber = i + 1;
+						System.out.println("Page number: " + pageNumber);
+						image = decoder.getPageAsImage(pageNumber);
+						ImageTypeSpecifier spec = ImageTypeSpecifier.createFromRenderedImage(image);
+						javax.imageio.metadata.IIOMetadata metadata = writer.getDefaultImageMetadata(spec, writeParam);
+						IIOImage iioImage = new IIOImage(image, null, metadata);
+						writer.writeToSequence(iioImage, writeParam);
+						image.flush();//modified after release.
+
+					}
+					image.flush();
+					writer.endWriteSequence();
+					ios.flush();
+					writer.dispose();
+					ios.close();
+					out = baos.toByteArray();
+					baos.close();
+
+					String strFilePath = "outfile.tif";
+					FileOutputStream fos = new FileOutputStream(strFilePath);
+					fos.write(out);
+					fos.close();
+				}
+
+				if(!foundWriter) {
+					throw new RuntimeException("Error: no writer found for image type '" + imageType + "'");
+				}
+			}
+			decoder.closePdfFile();
+		}
+		catch(Exception e) {
+			e.printStackTrace();//modified after release
+			//throw e; 
+		}
+		System.out.println("About to exit");
+	}
+}
